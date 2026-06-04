@@ -1,10 +1,18 @@
 /* ==========================
-APP ENTRY
+IMPORTS
 ========================== */
 
 import {
   renderTabs
 } from "./ui/tabs.js";
+
+import {
+  renderFilters
+} from "./ui/filters.js";
+
+import {
+  loadAllData
+} from "./services/fetchService.js";
 
 /* ==========================
 APP STATE
@@ -12,12 +20,18 @@ APP STATE
 
 export const APP_STATE = {
 
+  loading: true,
+
   activeTab: "dashboard",
 
   filters: {
+
     brand: "ALL",
+
     erpStatus: "ALL",
+
     search: ""
+
   }
 
 };
@@ -28,16 +42,35 @@ BOOT
 
 init();
 
-function init() {
+async function init() {
 
-  renderGlobalFilters();
+  showLoading();
 
-  renderTabs(
-    APP_STATE.activeTab,
-    handleTabChange
-  );
+  try {
 
-  renderPage();
+    await loadAllData();
+
+    renderGlobalFilters();
+
+    renderTabs(
+      APP_STATE.activeTab,
+      handleTabChange
+    );
+
+    renderPage();
+
+  }
+  catch (error) {
+
+    showError(
+      error.message
+    );
+
+    console.error(
+      error
+    );
+
+  }
 
 }
 
@@ -49,7 +82,8 @@ function handleTabChange(
   tabId
 ) {
 
-  APP_STATE.activeTab = tabId;
+  APP_STATE.activeTab =
+    tabId;
 
   renderTabs(
     APP_STATE.activeTab,
@@ -61,7 +95,7 @@ function handleTabChange(
 }
 
 /* ==========================
-GLOBAL FILTERS
+FILTERS
 ========================== */
 
 function renderGlobalFilters() {
@@ -83,9 +117,6 @@ function renderGlobalFilters() {
         id="brandFilter"
         class="filter-control"
       >
-        <option value="ALL">
-          All Brands
-        </option>
       </select>
 
     </div>
@@ -100,9 +131,6 @@ function renderGlobalFilters() {
         id="erpStatusFilter"
         class="filter-control"
       >
-        <option value="ALL">
-          All Status
-        </option>
       </select>
 
     </div>
@@ -115,53 +143,16 @@ function renderGlobalFilters() {
 
       <input
         id="searchFilter"
-        class="filter-control search-control"
         type="text"
+        class="filter-control search-control"
         placeholder="Style ID / ERP SKU"
       >
     </div>
 
   `;
 
-  setupSearchDebounce();
-
-}
-
-/* ==========================
-SEARCH DEBOUNCE
-========================== */
-
-function setupSearchDebounce() {
-
-  const searchInput =
-    document.getElementById(
-      "searchFilter"
-    );
-
-  let timer = null;
-
-  searchInput.addEventListener(
-    "input",
-    event => {
-
-      clearTimeout(
-        timer
-      );
-
-      timer = setTimeout(
-        () => {
-
-          APP_STATE.filters.search =
-            event.target.value
-              .trim();
-
-          renderPage();
-
-        },
-        300
-      );
-
-    }
+  renderFilters(
+    renderPage
   );
 
 }
@@ -218,6 +209,48 @@ function renderPage() {
 }
 
 /* ==========================
+LOADING
+========================== */
+
+function showLoading() {
+
+  document.getElementById(
+    "pageContent"
+  ).innerHTML = `
+
+    <div class="empty-state">
+
+      Loading Data...
+
+    </div>
+
+  `;
+
+}
+
+/* ==========================
+ERROR
+========================== */
+
+function showError(
+  message
+) {
+
+  document.getElementById(
+    "pageContent"
+  ).innerHTML = `
+
+    <div class="empty-state">
+
+      ${message}
+
+    </div>
+
+  `;
+
+}
+
+/* ==========================
 DASHBOARD
 ========================== */
 
@@ -242,7 +275,7 @@ function getDashboardPage() {
         )}
 
         ${createKpiCard(
-          "Latest Stock"
+          "Latest Snapshot Stock"
         )}
 
         ${createKpiCard(
@@ -265,7 +298,7 @@ function getDashboardPage() {
 
       <div class="empty-state">
 
-        Dashboard Report
+        Dashboard Engine Pending
 
       </div>
 
@@ -288,7 +321,9 @@ function getMarginPage() {
       <div class="section-header">
 
         <div class="section-title">
+
           Margin Trend
+
         </div>
 
         <div class="section-actions">
@@ -305,7 +340,7 @@ function getMarginPage() {
 
       <div class="empty-state">
 
-        Margin Trend Report
+        Margin Trend Report Pending
 
       </div>
 
@@ -328,7 +363,9 @@ function getStockPage() {
       <div class="section-header">
 
         <div class="section-title">
+
           Stock Trend
+
         </div>
 
         <div class="section-actions">
@@ -345,7 +382,7 @@ function getStockPage() {
 
       <div class="empty-state">
 
-        Stock Trend Report
+        Stock Trend Report Pending
 
       </div>
 
@@ -392,11 +429,15 @@ function getVerificationPage() {
         <div class="upload-dropzone">
 
           <div class="upload-title">
+
             Upload Paid Report
+
           </div>
 
           <div class="upload-subtitle">
+
             CSV File Upload
+
           </div>
 
         </div>
@@ -441,7 +482,7 @@ function getVerificationPage() {
 
       <div class="empty-state">
 
-        Verification Report
+        Verification Engine Pending
 
       </div>
 
@@ -464,11 +505,15 @@ function createKpiCard(
     <div class="kpi-card">
 
       <div class="kpi-label">
+
         ${label}
+
       </div>
 
       <div class="kpi-value">
+
         -
+
       </div>
 
     </div>
