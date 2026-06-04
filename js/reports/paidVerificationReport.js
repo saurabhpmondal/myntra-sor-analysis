@@ -3,194 +3,45 @@ IMPORTS
 ========================== */
 
 import {
-  getCache
-} from "../services/cacheService.js";
+  generatePaidReport
+} from "../engine/paidVerificationEngine.js";
 
 /* ==========================
-VALIDATE FILE
+RENDER REPORT
 ========================== */
 
-export function validatePaidData(
+export function renderPaidVerificationReport(
   uploadedRows
 ) {
 
-  const sor =
-    getCache(
-      "sor"
-    ) || [];
-
-  const sorMap =
-    buildSorMap(
-      sor
-    );
-
-  const found = [];
-
-  const notFound = [];
-
-  uploadedRows.forEach(
-    row => {
-
-      const styleId =
-        String(
-          row.style_id || ""
-        ).trim();
-
-      const sorRow =
-        sorMap[
-          styleId
-        ];
-
-      if (
-        !sorRow
-      ) {
-
-        notFound.push({
-          style_id:
-            styleId
-        });
-
-        return;
-
-      }
-
-      found.push({
-        ...row,
-        ...sorRow
-      });
-
-    }
-  );
-
-  return {
-
-    found,
-
-    notFound,
-
-    foundCount:
-      found.length,
-
-    notFoundCount:
-      notFound.length
-
-  };
-
-}
-
-/* ==========================
-GENERATE REPORT
-========================== */
-
-export function generatePaidReport(
-  uploadedRows
-) {
-
-  const validation =
-    validatePaidData(
+  const result =
+    generatePaidReport(
       uploadedRows
     );
 
-  const reportRows =
-    validation.found.map(
-      row => {
+  return `
 
-        const quantity =
-          Number(
-            row.quantity || 0
-          );
+    <section class="page-section">
 
-        const revenue =
-          Number(
-            row.revenue || 0
-          );
+      ${renderKpis(
+        result.kpis
+      )}
 
-        const purchasePrice =
-          Number(
-            row.purchase_price || 0
-          );
+      ${renderValidation(
+        result.validation
+      )}
 
-        const tp =
-          Number(
-            row.tp || 0
-          );
+      ${renderNotFound(
+        result.validation.notFound
+      )}
 
-        const unitPurchasePrice =
+      ${renderTable(
+        result.reportRows
+      )}
 
-          quantity > 0
-            ? (
-                purchasePrice /
-                quantity
-              )
-            : 0;
+    </section>
 
-        const diff =
-
-          unitPurchasePrice -
-          tp;
-
-        const margin =
-
-          revenue > 0
-            ? (
-                (
-                  revenue -
-                  purchasePrice
-                ) /
-                revenue
-              ) * 100
-            : null;
-
-        return {
-
-          style_id:
-            row.style_id,
-
-          erp_sku:
-            row.erp_sku,
-
-          erp_status:
-            row.erp_status,
-
-          quantity,
-
-          revenue,
-
-          purchase_price:
-            purchasePrice,
-
-          tp,
-
-          unit_purchase_price:
-            unitPurchasePrice,
-
-          diff,
-
-          margin,
-
-          status:
-            getStatus(
-              diff
-            )
-
-        };
-
-      }
-    );
-
-  return {
-
-    reportRows,
-
-    validation,
-
-    kpis:
-      buildKpis(
-        reportRows,
-        validation
-      )
-
-  };
+  `;
 
 }
 
@@ -198,144 +49,468 @@ export function generatePaidReport(
 KPIS
 ========================== */
 
-function buildKpis(
-  rows,
+function renderKpis(
+  kpis
+) {
+
+  return `
+
+    <div class="kpi-grid">
+
+      ${createCard(
+        "Matched Styles",
+        formatNumber(
+          kpis.matchedStyles
+        )
+      )}
+
+      ${createCard(
+        "Not Found",
+        formatNumber(
+          kpis.notFoundStyles
+        )
+      )}
+
+      ${createCard(
+        "Total Units",
+        formatNumber(
+          kpis.totalUnits
+        )
+      )}
+
+      ${createCard(
+        "Total Purchase",
+        formatCurrency(
+          kpis.totalPurchase
+        )
+      )}
+
+      ${createCard(
+        "Total Revenue",
+        formatCurrency(
+          kpis.totalRevenue
+        )
+      )}
+
+      ${createCard(
+        "Actual Margin",
+        formatPercent(
+          kpis.actualMargin
+        )
+      )}
+
+      ${createCard(
+        "Overpaid",
+        formatNumber(
+          kpis.overpaid
+        )
+      )}
+
+      ${createCard(
+        "Underpaid",
+        formatNumber(
+          kpis.underpaid
+        )
+      )}
+
+    </div>
+
+  `;
+
+}
+
+/* ==========================
+VALIDATION
+========================== */
+
+function renderValidation(
   validation
 ) {
 
-  const totalUnits =
-    rows.reduce(
-      (
-        sum,
-        row
-      ) =>
-        sum +
-        row.quantity,
-      0
-    );
+  return `
 
-  const totalRevenue =
-    rows.reduce(
-      (
-        sum,
-        row
-      ) =>
-        sum +
-        row.revenue,
-      0
-    );
+    <div class="validation-card">
 
-  const totalPurchase =
-    rows.reduce(
-      (
-        sum,
-        row
-      ) =>
-        sum +
-        row.purchase_price,
-      0
-    );
+      <div class="validation-item">
 
-  const actualMargin =
+        <div class="validation-label">
+          Found Styles
+        </div>
 
-    totalRevenue > 0
+        <div class="
+          validation-value
+          success
+        ">
+          ${validation.foundCount}
+        </div>
 
-      ? (
-          (
-            totalRevenue -
-            totalPurchase
-          ) /
-          totalRevenue
-        ) * 100
+      </div>
 
-      : 0;
+      <div class="validation-item">
 
-  const overpaid =
-    rows.filter(
-      row =>
-        row.diff > 0
-    ).length;
+        <div class="validation-label">
+          Not Found
+        </div>
 
-  const underpaid =
-    rows.filter(
-      row =>
-        row.diff < 0
-    ).length;
+        <div class="
+          validation-value
+          danger
+        ">
+          ${validation.notFoundCount}
+        </div>
 
-  return {
+      </div>
 
-    matchedStyles:
-      validation.foundCount,
+    </div>
 
-    notFoundStyles:
-      validation.notFoundCount,
-
-    totalUnits,
-
-    totalRevenue,
-
-    totalPurchase,
-
-    actualMargin,
-
-    overpaid,
-
-    underpaid
-
-  };
+  `;
 
 }
 
 /* ==========================
-STATUS
+NOT FOUND
 ========================== */
 
-function getStatus(
-  diff
-) {
-
-  if (
-    diff > 0
-  ) {
-
-    return "OVERPAID";
-
-  }
-
-  if (
-    diff < 0
-  ) {
-
-    return "UNDERPAID";
-
-  }
-
-  return "CORRECT";
-
-}
-
-/* ==========================
-SOR MAP
-========================== */
-
-function buildSorMap(
+function renderNotFound(
   rows
 ) {
 
-  const map = {};
+  if (
+    !rows.length
+  ) {
 
-  rows.forEach(
-    row => {
+    return "";
 
-      map[
-        String(
-          row.style_id
-        ).trim()
-      ] = row;
+  }
 
+  return `
+
+    <div class="table-section">
+
+      <div class="table-header">
+
+        <div class="table-title">
+
+          Not Found Styles
+
+        </div>
+
+      </div>
+
+      <div class="table-wrapper">
+
+        <table
+          class="
+            report-table
+            not-found-table
+          "
+        >
+
+          <thead>
+
+            <tr>
+
+              <th>
+                Style ID
+              </th>
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            ${rows
+              .map(
+                row => `
+
+                  <tr>
+
+                    <td>
+                      ${row.style_id}
+                    </td>
+
+                  </tr>
+
+                `
+              )
+              .join("")}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+/* ==========================
+REPORT TABLE
+========================== */
+
+function renderTable(
+  rows
+) {
+
+  return `
+
+    <div class="table-section">
+
+      <div class="table-header">
+
+        <div class="table-title">
+
+          Paid Verification
+
+        </div>
+
+        <div class="table-actions">
+
+          <button
+            id="exportVerificationReport"
+            class="btn-primary"
+          >
+            Export Excel
+          </button>
+
+        </div>
+
+      </div>
+
+      <div class="table-wrapper">
+
+        <table
+          id="verificationTable"
+          class="
+            report-table
+            verification-table
+          "
+        >
+
+          <thead>
+
+            <tr>
+
+              <th>Style ID</th>
+
+              <th>ERP SKU</th>
+
+              <th>ERP Status</th>
+
+              <th>Qty</th>
+
+              <th>Revenue</th>
+
+              <th>Purchase Price</th>
+
+              <th>TP</th>
+
+              <th>Unit Purchase</th>
+
+              <th>Diff</th>
+
+              <th>Margin %</th>
+
+              <th>Status</th>
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            ${rows
+              .map(
+                row => `
+
+                  <tr>
+
+                    <td>
+                      ${row.style_id}
+                    </td>
+
+                    <td>
+                      ${row.erp_sku}
+                    </td>
+
+                    <td>
+                      ${row.erp_status}
+                    </td>
+
+                    <td class="cell-right">
+                      ${formatNumber(row.quantity)}
+                    </td>
+
+                    <td class="cell-right">
+                      ${formatCurrency(row.revenue)}
+                    </td>
+
+                    <td class="cell-right">
+                      ${formatCurrency(row.purchase_price)}
+                    </td>
+
+                    <td class="cell-right">
+                      ${formatCurrency(row.tp)}
+                    </td>
+
+                    <td class="cell-right">
+                      ${formatCurrency(row.unit_purchase_price)}
+                    </td>
+
+                    <td class="
+                      cell-right
+                      ${getDiffClass(row.diff)}
+                    ">
+                      ${formatCurrency(row.diff)}
+                    </td>
+
+                    <td class="cell-right">
+                      ${
+                        row.margin === null
+                          ? "NA"
+                          : formatPercent(row.margin)
+                      }
+                    </td>
+
+                    <td class="
+                      ${getStatusClass(row.status)}
+                    ">
+                      ${row.status}
+                    </td>
+
+                  </tr>
+
+                `
+              )
+              .join("")}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+/* ==========================
+CARD
+========================== */
+
+function createCard(
+  label,
+  value
+) {
+
+  return `
+
+    <div class="kpi-card">
+
+      <div class="kpi-label">
+        ${label}
+      </div>
+
+      <div class="kpi-value">
+        ${value}
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+/* ==========================
+STATUS CLASS
+========================== */
+
+function getStatusClass(
+  status
+) {
+
+  if (
+    status === "OVERPAID"
+  ) {
+    return "status-danger";
+  }
+
+  if (
+    status === "UNDERPAID"
+  ) {
+    return "status-warning";
+  }
+
+  return "status-success";
+
+}
+
+function getDiffClass(
+  value
+) {
+
+  if (
+    value > 0
+  ) {
+    return "status-danger";
+  }
+
+  if (
+    value < 0
+  ) {
+    return "status-warning";
+  }
+
+  return "status-success";
+
+}
+
+/* ==========================
+FORMATTERS
+========================== */
+
+function formatNumber(
+  value
+) {
+
+  return Number(
+    value || 0
+  ).toLocaleString(
+    "en-IN"
+  );
+
+}
+
+function formatCurrency(
+  value
+) {
+
+  return Number(
+    value || 0
+  ).toLocaleString(
+    "en-IN",
+    {
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2
     }
   );
 
-  return map;
+}
+
+function formatPercent(
+  value
+) {
+
+  return Number(
+    value || 0
+  ).toFixed(
+    2
+  ) + "%";
 
 }
