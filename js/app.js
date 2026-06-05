@@ -175,21 +175,21 @@ function renderPage() {
     case "dashboard":
 
       container.innerHTML =
-        getDashboardPage();
+        renderDashboard();
 
       break;
 
     case "margin":
 
       container.innerHTML =
-        getMarginPage();
+        renderMarginTrendReport();
 
       break;
 
     case "stock":
 
       container.innerHTML =
-        getStockPage();
+        renderStockTrendReport();
 
       break;
 
