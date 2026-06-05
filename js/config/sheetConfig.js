@@ -1,109 +1,50 @@
 /* ==========================
-TAB CONFIG
+GOOGLE SHEET CONFIG
 ========================== */
 
-const TABS = [
+export const SHEETS = {
 
-  {
-    id: "dashboard",
-    label: "Dashboard"
+  SOR: {
+    name: "SOR",
+    url:
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQG6UUIpYjTVSXYJT5KIzno5a_uNnOgK3bFH8oRS7_FvQCmyg0taENeP0O7erPgBfWBRrhi7IHYhb1C/pub?gid=0&single=true&output=csv"
   },
 
-  {
-    id: "margin",
-    label: "Margin Trend"
+  PRICE: {
+    name: "PRICE",
+    url:
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQG6UUIpYjTVSXYJT5KIzno5a_uNnOgK3bFH8oRS7_FvQCmyg0taENeP0O7erPgBfWBRrhi7IHYhb1C/pub?gid=306269267&single=true&output=csv"
   },
 
-  {
-    id: "stock",
-    label: "Stock Trend"
-  },
-
-  {
-    id: "verification",
-    label: "Paid Verification"
+  STOCK: {
+    name: "STOCK",
+    url:
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQG6UUIpYjTVSXYJT5KIzno5a_uNnOgK3bFH8oRS7_FvQCmyg0taENeP0O7erPgBfWBRrhi7IHYhb1C/pub?gid=536477929&single=true&output=csv"
   }
 
-];
+};
 
 /* ==========================
-RENDER TABS
+DEFAULT SETTINGS
 ========================== */
 
-export function renderTabs(
-  activeTab,
-  onChange
-) {
+export const SETTINGS = {
 
-  const container =
-    document.getElementById(
-      "tabsBar"
-    );
+  SEARCH_DEBOUNCE: 300,
 
-  if (!container) {
-    return;
-  }
+  DEFAULT_DATE_COUNT: 10,
 
-  container.innerHTML =
-    TABS.map(
-      tab => `
+  DATE_OPTIONS: [
+    5,
+    10,
+    15,
+    20
+  ],
 
-        <button
-          class="
-            tab-btn
-            ${
-              activeTab === tab.id
-                ? "active"
-                : ""
-            }
-          "
-          data-tab-id="${tab.id}"
-        >
+  BASE_MARGIN: 27,
 
-          ${tab.label}
+  MARKETPLACE_COST_PERCENT: 5,
 
-        </button>
+  LOW_STOCK_THRESHOLD: 5
 
-      `
-    ).join("");
-
-  bindTabEvents(
-    onChange
-  );
-
-}
-
-/* ==========================
-TAB EVENTS
-========================== */
-
-function bindTabEvents(
-  onChange
-) {
-
-  const buttons =
-    document.querySelectorAll(
-      ".tab-btn"
-    );
-
-  buttons.forEach(
-    button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          const tabId =
-            button.dataset.tabId;
-
-          onChange(
-            tabId
-          );
-
-        }
-      );
-
-    }
-  );
-
-}
+};
