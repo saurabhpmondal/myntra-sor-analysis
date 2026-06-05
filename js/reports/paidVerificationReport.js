@@ -7,6 +7,20 @@ import {
 } from "../engine/paidVerificationEngine.js";
 
 /* ==========================
+DATA ACCESS
+========================== */
+
+export function getPaidVerificationData(
+  uploadedRows
+) {
+
+  return generatePaidReport(
+    uploadedRows
+  );
+
+}
+
+/* ==========================
 RENDER REPORT
 ========================== */
 
@@ -15,7 +29,7 @@ export function renderPaidVerificationReport(
 ) {
 
   const result =
-    generatePaidReport(
+    getPaidVerificationData(
       uploadedRows
     );
 
@@ -241,27 +255,16 @@ function renderTable(
             <tr>
 
               <th>Style ID</th>
-
               <th>ERP SKU</th>
-
               <th>ERP Status</th>
-
               <th>Qty</th>
-
               <th>Revenue</th>
-
               <th>Purchase Price</th>
-
               <th>TP</th>
-
               <th>Unit Purchase</th>
-
               <th>Diff</th>
-
               <th>Total Diff</th>
-
               <th>Margin %</th>
-
               <th>Status</th>
 
             </tr>
@@ -303,14 +306,18 @@ function renderTable(
 
                   <td class="
                     cell-right
-                    ${getDiffClass(row.status)}
+                    ${getStatusClass(
+                      row.status
+                    )}
                   ">
                     ${formatCurrency(row.diff)}
                   </td>
 
                   <td class="
                     cell-right
-                    ${getDiffClass(row.status)}
+                    ${getStatusClass(
+                      row.status
+                    )}
                   ">
                     ${formatCurrency(row.total_diff)}
                   </td>
@@ -382,30 +389,10 @@ function createCard(
 }
 
 /* ==========================
-STATUS CLASS
+STATUS
 ========================== */
 
 function getStatusClass(
-  status
-) {
-
-  if (
-    status === "OVERPAID"
-  ) {
-    return "status-danger";
-  }
-
-  if (
-    status === "UNDERPAID"
-  ) {
-    return "status-warning";
-  }
-
-  return "status-success";
-
-}
-
-function getDiffClass(
   status
 ) {
 
