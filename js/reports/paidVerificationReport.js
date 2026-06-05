@@ -23,16 +23,12 @@ export function renderPaidVerificationReport(
 
     <section class="page-section">
 
-      ${renderKpis(
-        result.kpis
-      )}
-
-      ${renderValidation(
+      ${renderValidationSummary(
         result.validation
       )}
 
-      ${renderNotFound(
-        result.validation.notFound
+      ${renderKpis(
+        result.kpis
       )}
 
       ${renderTable(
@@ -40,6 +36,91 @@ export function renderPaidVerificationReport(
       )}
 
     </section>
+
+  `;
+
+}
+
+/* ==========================
+VALIDATION SUMMARY
+========================== */
+
+function renderValidationSummary(
+  validation
+) {
+
+  return `
+
+    <div class="validation-summary">
+
+      <div class="
+        validation-box
+        success
+      ">
+
+        <div class="
+          validation-box-title
+        ">
+          Found Styles
+        </div>
+
+        <div class="
+          validation-box-value
+        ">
+          ${validation.foundCount}
+        </div>
+
+      </div>
+
+      <div class="
+        validation-box
+        ${
+          validation.notFoundCount > 0
+            ? "warning"
+            : "success"
+        }
+      ">
+
+        <div class="
+          validation-box-title
+        ">
+          Missing Styles
+        </div>
+
+        <div class="
+          validation-box-value
+        ">
+          ${validation.notFoundCount}
+        </div>
+
+      </div>
+
+      ${
+        validation.notFoundCount > 0
+
+          ? `
+
+            <div class="
+              validation-box
+              warning
+            ">
+
+              <button
+                id="exportMissingStyles"
+                class="btn-primary"
+              >
+                Export Missing Styles
+              </button>
+
+            </div>
+
+          `
+
+          : ""
+
+      }
+
+    </div>
 
   `;
 
@@ -58,16 +139,23 @@ function renderKpis(
     <div class="kpi-grid">
 
       ${createCard(
-        "Matched Styles",
+        "Found Styles",
         formatNumber(
-          kpis.matchedStyles
+          kpis.foundStyles
         )
       )}
 
       ${createCard(
-        "Not Found",
+        "Overpaid Styles",
         formatNumber(
-          kpis.notFoundStyles
+          kpis.overpaidStyles
+        )
+      )}
+
+      ${createCard(
+        "Underpaid Styles",
+        formatNumber(
+          kpis.underpaidStyles
         )
       )}
 
@@ -99,20 +187,6 @@ function renderKpis(
         )
       )}
 
-      ${createCard(
-        "Overpaid",
-        formatNumber(
-          kpis.overpaid
-        )
-      )}
-
-      ${createCard(
-        "Underpaid",
-        formatNumber(
-          kpis.underpaid
-        )
-      )}
-
     </div>
 
   `;
@@ -120,136 +194,7 @@ function renderKpis(
 }
 
 /* ==========================
-VALIDATION
-========================== */
-
-function renderValidation(
-  validation
-) {
-
-  return `
-
-    <div class="validation-card">
-
-      <div class="validation-item">
-
-        <div class="validation-label">
-          Found Styles
-        </div>
-
-        <div class="
-          validation-value
-          success
-        ">
-          ${validation.foundCount}
-        </div>
-
-      </div>
-
-      <div class="validation-item">
-
-        <div class="validation-label">
-          Not Found
-        </div>
-
-        <div class="
-          validation-value
-          danger
-        ">
-          ${validation.notFoundCount}
-        </div>
-
-      </div>
-
-    </div>
-
-  `;
-
-}
-
-/* ==========================
-NOT FOUND
-========================== */
-
-function renderNotFound(
-  rows
-) {
-
-  if (
-    !rows.length
-  ) {
-
-    return "";
-
-  }
-
-  return `
-
-    <div class="table-section">
-
-      <div class="table-header">
-
-        <div class="table-title">
-
-          Not Found Styles
-
-        </div>
-
-      </div>
-
-      <div class="table-wrapper">
-
-        <table
-          class="
-            report-table
-            not-found-table
-          "
-        >
-
-          <thead>
-
-            <tr>
-
-              <th>
-                Style ID
-              </th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            ${rows
-              .map(
-                row => `
-
-                  <tr>
-
-                    <td>
-                      ${row.style_id}
-                    </td>
-
-                  </tr>
-
-                `
-              )
-              .join("")}
-
-          </tbody>
-
-        </table>
-
-      </div>
-
-    </div>
-
-  `;
-
-}
-
-/* ==========================
-REPORT TABLE
+TABLE
 ========================== */
 
 function renderTable(
@@ -274,7 +219,7 @@ function renderTable(
             id="exportVerificationReport"
             class="btn-primary"
           >
-            Export Excel
+            Export Found Styles
           </button>
 
         </div>
@@ -313,6 +258,8 @@ function renderTable(
 
               <th>Diff</th>
 
+              <th>Total Diff</th>
+
               <th>Margin %</th>
 
               <th>Status</th>
@@ -323,70 +270,77 @@ function renderTable(
 
           <tbody>
 
-            ${rows
-              .map(
-                row => `
+            ${rows.map(
+              row => `
 
-                  <tr>
+                <tr>
 
-                    <td>
-                      ${row.style_id}
-                    </td>
+                  <td>${row.style_id}</td>
 
-                    <td>
-                      ${row.erp_sku}
-                    </td>
+                  <td>${row.erp_sku}</td>
 
-                    <td>
-                      ${row.erp_status}
-                    </td>
+                  <td>${row.erp_status}</td>
 
-                    <td class="cell-right">
-                      ${formatNumber(row.quantity)}
-                    </td>
+                  <td class="cell-right">
+                    ${formatNumber(row.quantity)}
+                  </td>
 
-                    <td class="cell-right">
-                      ${formatCurrency(row.revenue)}
-                    </td>
+                  <td class="cell-right">
+                    ${formatCurrency(row.revenue)}
+                  </td>
 
-                    <td class="cell-right">
-                      ${formatCurrency(row.purchase_price)}
-                    </td>
+                  <td class="cell-right">
+                    ${formatCurrency(row.purchase_price)}
+                  </td>
 
-                    <td class="cell-right">
-                      ${formatCurrency(row.tp)}
-                    </td>
+                  <td class="cell-right">
+                    ${formatCurrency(row.tp)}
+                  </td>
 
-                    <td class="cell-right">
-                      ${formatCurrency(row.unit_purchase_price)}
-                    </td>
+                  <td class="cell-right">
+                    ${formatCurrency(row.unit_purchase_price)}
+                  </td>
 
-                    <td class="
-                      cell-right
-                      ${getDiffClass(row.diff)}
-                    ">
-                      ${formatCurrency(row.diff)}
-                    </td>
+                  <td class="
+                    cell-right
+                    ${getDiffClass(row.status)}
+                  ">
+                    ${formatCurrency(row.diff)}
+                  </td>
 
-                    <td class="cell-right">
-                      ${
-                        row.margin === null
-                          ? "NA"
-                          : formatPercent(row.margin)
-                      }
-                    </td>
+                  <td class="
+                    cell-right
+                    ${getDiffClass(row.status)}
+                  ">
+                    ${formatCurrency(row.total_diff)}
+                  </td>
 
-                    <td class="
-                      ${getStatusClass(row.status)}
-                    ">
-                      ${row.status}
-                    </td>
+                  <td class="cell-right">
 
-                  </tr>
+                    ${
+                      row.margin === null
+                        ? "NA"
+                        : formatPercent(
+                            row.margin
+                          )
+                    }
 
-                `
-              )
-              .join("")}
+                  </td>
+
+                  <td class="
+                    ${getStatusClass(
+                      row.status
+                    )}
+                  ">
+
+                    ${row.status}
+
+                  </td>
+
+                </tr>
+
+              `
+            ).join("")}
 
           </tbody>
 
@@ -452,17 +406,17 @@ function getStatusClass(
 }
 
 function getDiffClass(
-  value
+  status
 ) {
 
   if (
-    value > 0
+    status === "OVERPAID"
   ) {
     return "status-danger";
   }
 
   if (
-    value < 0
+    status === "UNDERPAID"
   ) {
     return "status-warning";
   }
