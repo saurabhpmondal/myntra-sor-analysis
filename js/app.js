@@ -14,6 +14,19 @@ import {
   loadAllData
 } from "./services/fetchService.js";
 
+import {
+  renderDashboard
+} from "./reports/dashboardReport.js";
+
+import {
+  renderMarginTrendReport
+} from "./reports/marginTrendReport.js";
+
+import {
+  renderStockTrendReport
+} from "./reports/stockTrendReport.js";
+
+
 /* ==========================
 APP STATE
 ========================== */
