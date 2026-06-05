@@ -6,9 +6,29 @@ import {
   getCache
 } from "../services/cacheService.js";
 
-import {
-  APP_STATE
-} from "../app.js";
+/* ==========================
+FILTER STATE
+========================== */
+
+const FILTERS = {
+
+  brand: "ALL",
+
+  erpStatus: "ALL",
+
+  search: ""
+
+};
+
+/* ==========================
+GET FILTERS
+========================== */
+
+export function getFilters() {
+
+  return FILTERS;
+
+}
 
 /* ==========================
 RENDER FILTERS
@@ -44,9 +64,7 @@ function populateBrands() {
       "brandFilter"
     );
 
-  if (!select) {
-    return;
-  }
+  if (!select) return;
 
   select.innerHTML = `
 
@@ -54,17 +72,13 @@ function populateBrands() {
       All Brands
     </option>
 
-    ${brands
-      .map(
-        brand => `
-
-          <option value="${brand}">
-            ${brand}
-          </option>
-
-        `
-      )
-      .join("")}
+    ${brands.map(
+      brand => `
+        <option value="${brand}">
+          ${brand}
+        </option>
+      `
+    ).join("")}
 
   `;
 
@@ -86,9 +100,7 @@ function populateErpStatuses() {
       "erpStatusFilter"
     );
 
-  if (!select) {
-    return;
-  }
+  if (!select) return;
 
   select.innerHTML = `
 
@@ -96,149 +108,103 @@ function populateErpStatuses() {
       All Status
     </option>
 
-    ${statuses
-      .map(
-        status => `
-
-          <option value="${status}">
-            ${status}
-          </option>
-
-        `
-      )
-      .join("")}
+    ${statuses.map(
+      status => `
+        <option value="${status}">
+          ${status}
+        </option>
+      `
+    ).join("")}
 
   `;
 
 }
 
 /* ==========================
-BIND EVENTS
+EVENTS
 ========================== */
 
 function bindEvents(
   onChange
 ) {
 
-  bindBrand(
-    onChange
-  );
-
-  bindErpStatus(
-    onChange
-  );
-
-  bindSearch(
-    onChange
-  );
-
-}
-
-/* ==========================
-BRAND
-========================== */
-
-function bindBrand(
-  onChange
-) {
-
-  const select =
+  const brand =
     document.getElementById(
       "brandFilter"
     );
 
-  if (!select) {
-    return;
-  }
-
-  select.onchange =
-    event => {
-
-      APP_STATE.filters.brand =
-        event.target.value;
-
-      onChange();
-
-    };
-
-}
-
-/* ==========================
-ERP STATUS
-========================== */
-
-function bindErpStatus(
-  onChange
-) {
-
-  const select =
+  const status =
     document.getElementById(
       "erpStatusFilter"
     );
 
-  if (!select) {
-    return;
-  }
-
-  select.onchange =
-    event => {
-
-      APP_STATE.filters.erpStatus =
-        event.target.value;
-
-      onChange();
-
-    };
-
-}
-
-/* ==========================
-SEARCH
-========================== */
-
-function bindSearch(
-  onChange
-) {
-
-  const input =
+  const search =
     document.getElementById(
       "searchFilter"
     );
 
-  if (!input) {
-    return;
+  if (brand) {
+
+    brand.onchange =
+      event => {
+
+        FILTERS.brand =
+          event.target.value;
+
+        onChange();
+
+      };
+
   }
 
-  let timer = null;
+  if (status) {
 
-  input.oninput =
-    event => {
+    status.onchange =
+      event => {
 
-      clearTimeout(
-        timer
-      );
+        FILTERS.erpStatus =
+          event.target.value;
 
-      timer =
-        setTimeout(
-          () => {
+        onChange();
 
-            APP_STATE.filters.search =
-              event.target.value
-                .trim()
-                .toLowerCase();
+      };
 
-            onChange();
+  }
 
-          },
-          300
+  if (search) {
+
+    let timer = null;
+
+    search.oninput =
+      event => {
+
+        clearTimeout(
+          timer
         );
 
-    };
+        timer =
+          setTimeout(
+            () => {
+
+              FILTERS.search =
+                event.target.value
+                  .trim()
+                  .toLowerCase();
+
+              onChange();
+
+            },
+            300
+          );
+
+      };
+
+  }
 
 }
 
 /* ==========================
-FILTER DATA
+APPLY FILTERS
 ========================== */
 
 export function applyFilters(
@@ -249,8 +215,7 @@ export function applyFilters(
     brand,
     erpStatus,
     search
-  } =
-    APP_STATE.filters;
+  } = FILTERS;
 
   return rows.filter(
     row => {
@@ -258,15 +223,12 @@ export function applyFilters(
       const brandMatch =
         brand === "ALL"
           ? true
-          : row.brand ===
-            brand;
+          : row.brand === brand;
 
       const statusMatch =
-        erpStatus ===
-        "ALL"
+        erpStatus === "ALL"
           ? true
-          : row.erp_status ===
-            erpStatus;
+          : row.erp_status === erpStatus;
 
       const searchMatch =
         !search
@@ -277,9 +239,7 @@ export function applyFilters(
             ]
               .join(" ")
               .toLowerCase()
-              .includes(
-                search
-              );
+              .includes(search);
 
       return (
         brandMatch &&
