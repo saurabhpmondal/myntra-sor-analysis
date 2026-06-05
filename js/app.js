@@ -26,6 +26,19 @@ import {
   renderStockTrendReport
 } from "./reports/stockTrendReport.js";
 
+import {
+  renderPaidVerificationReport
+} from "./reports/paidVerificationReport.js";
+
+import {
+  readCsvFile,
+  validateCsvStructure,
+  downloadSampleCsv
+} from "./services/csvUploadService.js";
+
+import {
+  exportTableToExcel
+} from "./services/exportService.js";
 
 /* ==========================
 APP STATE
@@ -35,19 +48,13 @@ export const APP_STATE = {
 
   loading: true,
 
-  activeTab: "dashboard",
-
-  filters: {
-
-    brand: "ALL",
-
-    erpStatus: "ALL",
-
-    search: ""
-
-  }
+  activeTab: "dashboard"
 
 };
+
+let uploadedRows = [];
+
+let uploadedFileName = "";
 
 /* ==========================
 BOOT
@@ -75,12 +82,12 @@ async function init() {
   }
   catch (error) {
 
-    showError(
-      error.message
-    );
-
     console.error(
       error
+    );
+
+    showError(
+      error.message
     );
 
   }
@@ -209,13 +216,270 @@ function renderPage() {
     case "verification":
 
       container.innerHTML =
-        getVerificationPage();
+        renderVerificationPage();
+
+      bindVerificationEvents();
 
       break;
 
     default:
 
-      container.innerHTML = "";
+      container.innerHTML =
+        "";
+
+  }
+
+}
+
+/* ==========================
+VERIFICATION PAGE
+========================== */
+
+function renderVerificationPage() {
+
+  return `
+
+    <section class="page-section">
+
+      <div class="upload-section">
+
+        <div class="upload-actions">
+
+          <button
+            id="downloadSampleBtn"
+            class="btn-secondary"
+          >
+            Download Sample
+          </button>
+
+          <button
+            id="uploadCsvBtn"
+            class="btn-primary"
+          >
+            Upload CSV
+          </button>
+
+          <button
+            id="generateReportBtn"
+            class="btn-primary"
+          >
+            Generate Report
+          </button>
+
+          <input
+            id="verificationFile"
+            type="file"
+            accept=".csv"
+            style="display:none;"
+          >
+
+        </div>
+
+        <div
+          id="uploadStatus"
+          class="upload-status"
+        >
+
+          No file uploaded
+
+        </div>
+
+      </div>
+
+      <div
+        id="verificationResult"
+      ></div>
+
+    </section>
+
+  `;
+
+}
+
+/* ==========================
+VERIFICATION EVENTS
+========================== */
+
+function bindVerificationEvents() {
+
+  const sampleBtn =
+    document.getElementById(
+      "downloadSampleBtn"
+    );
+
+  const uploadBtn =
+    document.getElementById(
+      "uploadCsvBtn"
+    );
+
+  const generateBtn =
+    document.getElementById(
+      "generateReportBtn"
+    );
+
+  const fileInput =
+    document.getElementById(
+      "verificationFile"
+    );
+
+  sampleBtn?.addEventListener(
+    "click",
+    () => {
+
+      downloadSampleCsv();
+
+    }
+  );
+
+  uploadBtn?.addEventListener(
+    "click",
+    () => {
+
+      fileInput.click();
+
+    }
+  );
+
+  fileInput?.addEventListener(
+    "change",
+    async event => {
+
+      const file =
+        event.target.files[0];
+
+      if (!file) {
+        return;
+      }
+
+      try {
+
+        uploadedRows =
+          await readCsvFile(
+            file
+          );
+
+        uploadedFileName =
+          file.name;
+
+        const validation =
+          validateCsvStructure(
+            uploadedRows
+          );
+
+        updateUploadStatus(
+          validation.valid
+            ? `Loaded ${uploadedRows.length} rows from ${uploadedFileName}`
+            : validation.message
+        );
+
+      }
+      catch (error) {
+
+        updateUploadStatus(
+          error.message
+        );
+
+      }
+
+    }
+  );
+
+  generateBtn?.addEventListener(
+    "click",
+    () => {
+
+      if (
+        !uploadedRows.length
+      ) {
+
+        alert(
+          "Upload CSV first"
+        );
+
+        return;
+
+      }
+
+      const validation =
+        validateCsvStructure(
+          uploadedRows
+        );
+
+      if (
+        !validation.valid
+      ) {
+
+        alert(
+          validation.message
+        );
+
+        return;
+
+      }
+
+      document.getElementById(
+        "verificationResult"
+      ).innerHTML =
+
+        renderPaidVerificationReport(
+          uploadedRows
+        );
+
+      bindExportButton();
+
+    }
+  );
+
+}
+
+/* ==========================
+EXPORT
+========================== */
+
+function bindExportButton() {
+
+  const button =
+    document.getElementById(
+      "exportVerificationReport"
+    );
+
+  if (!button) {
+    return;
+  }
+
+  button.addEventListener(
+    "click",
+    () => {
+
+      exportTableToExcel(
+        "verificationTable",
+        "paid_verification"
+      );
+
+    }
+  );
+
+}
+
+/* ==========================
+UPLOAD STATUS
+========================== */
+
+function updateUploadStatus(
+  text
+) {
+
+  const element =
+    document.getElementById(
+      "uploadStatus"
+    );
+
+  if (
+    element
+  ) {
+
+    element.innerHTML =
+      text;
 
   }
 
@@ -256,278 +520,6 @@ function showError(
     <div class="empty-state">
 
       ${message}
-
-    </div>
-
-  `;
-
-}
-
-/* ==========================
-DASHBOARD
-========================== */
-
-function getDashboardPage() {
-
-  return `
-
-    <section class="page-section">
-
-      <div class="kpi-grid">
-
-        ${createKpiCard(
-          "Total Styles"
-        )}
-
-        ${createKpiCard(
-          "Active Styles"
-        )}
-
-        ${createKpiCard(
-          "Total SOR Stock"
-        )}
-
-        ${createKpiCard(
-          "Latest Snapshot Stock"
-        )}
-
-        ${createKpiCard(
-          "Avg Margin"
-        )}
-
-        ${createKpiCard(
-          "Above 27%"
-        )}
-
-        ${createKpiCard(
-          "Below 27%"
-        )}
-
-        ${createKpiCard(
-          "OOS Styles"
-        )}
-
-      </div>
-
-      <div class="empty-state">
-
-        Dashboard Engine Pending
-
-      </div>
-
-    </section>
-
-  `;
-
-}
-
-/* ==========================
-MARGIN PAGE
-========================== */
-
-function getMarginPage() {
-
-  return `
-
-    <section class="page-section">
-
-      <div class="section-header">
-
-        <div class="section-title">
-
-          Margin Trend
-
-        </div>
-
-        <div class="section-actions">
-
-          <button
-            class="btn-primary"
-          >
-            Export Excel
-          </button>
-
-        </div>
-
-      </div>
-
-      <div class="empty-state">
-
-        Margin Trend Report Pending
-
-      </div>
-
-    </section>
-
-  `;
-
-}
-
-/* ==========================
-STOCK PAGE
-========================== */
-
-function getStockPage() {
-
-  return `
-
-    <section class="page-section">
-
-      <div class="section-header">
-
-        <div class="section-title">
-
-          Stock Trend
-
-        </div>
-
-        <div class="section-actions">
-
-          <button
-            class="btn-primary"
-          >
-            Export Excel
-          </button>
-
-        </div>
-
-      </div>
-
-      <div class="empty-state">
-
-        Stock Trend Report Pending
-
-      </div>
-
-    </section>
-
-  `;
-
-}
-
-/* ==========================
-VERIFICATION PAGE
-========================== */
-
-function getVerificationPage() {
-
-  return `
-
-    <section class="page-section">
-
-      <div class="upload-section">
-
-        <div class="upload-actions">
-
-          <button
-            class="btn-secondary"
-          >
-            Download Sample
-          </button>
-
-          <button
-            class="btn-primary"
-          >
-            Upload CSV
-          </button>
-
-          <button
-            class="btn-primary"
-          >
-            Generate Report
-          </button>
-
-        </div>
-
-        <div class="upload-dropzone">
-
-          <div class="upload-title">
-
-            Upload Paid Report
-
-          </div>
-
-          <div class="upload-subtitle">
-
-            CSV File Upload
-
-          </div>
-
-        </div>
-
-      </div>
-
-      <div class="kpi-grid">
-
-        ${createKpiCard(
-          "Matched Styles"
-        )}
-
-        ${createKpiCard(
-          "Not Found"
-        )}
-
-        ${createKpiCard(
-          "Total Units"
-        )}
-
-        ${createKpiCard(
-          "Total Purchase"
-        )}
-
-        ${createKpiCard(
-          "Total Revenue"
-        )}
-
-        ${createKpiCard(
-          "Actual Margin"
-        )}
-
-        ${createKpiCard(
-          "Overpaid"
-        )}
-
-        ${createKpiCard(
-          "Underpaid"
-        )}
-
-      </div>
-
-      <div class="empty-state">
-
-        Verification Engine Pending
-
-      </div>
-
-    </section>
-
-  `;
-
-}
-
-/* ==========================
-KPI CARD
-========================== */
-
-function createKpiCard(
-  label
-) {
-
-  return `
-
-    <div class="kpi-card">
-
-      <div class="kpi-label">
-
-        ${label}
-
-      </div>
-
-      <div class="kpi-value">
-
-        -
-
-      </div>
 
     </div>
 
