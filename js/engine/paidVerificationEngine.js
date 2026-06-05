@@ -7,6 +7,12 @@ import {
 } from "../services/cacheService.js";
 
 /* ==========================
+CONFIG
+========================== */
+
+const DIFF_TOLERANCE = 1;
+
+/* ==========================
 VALIDATE FILE
 ========================== */
 
@@ -15,7 +21,9 @@ export function validatePaidData(
 ) {
 
   const sor =
-    getCache("sor") || [];
+    getCache(
+      "sor"
+    ) || [];
 
   const sorMap = {};
 
@@ -43,10 +51,13 @@ export function validatePaidData(
           row.style_id || ""
         ).trim();
 
-      if (
-        !sorMap[
+      const sorRow =
+        sorMap[
           styleId
-        ]
+        ];
+
+      if (
+        !sorRow
       ) {
 
         notFound.push({
@@ -59,10 +70,11 @@ export function validatePaidData(
       }
 
       found.push({
+
         ...row,
-        ...sorMap[
-          styleId
-        ]
+
+        ...sorRow
+
       });
 
     }
@@ -124,10 +136,12 @@ export function generatePaidReport(
         const unitPurchasePrice =
 
           quantity > 0
+
             ? (
                 purchasePrice /
                 quantity
               )
+
             : 0;
 
         const diff =
@@ -202,8 +216,7 @@ export function generatePaidReport(
 
     kpis:
       buildKpis(
-        reportRows,
-        validation
+        reportRows
       )
 
   };
@@ -215,8 +228,7 @@ KPIS
 ========================== */
 
 function buildKpis(
-  rows,
-  validation
+  rows
 ) {
 
   const totalUnits =
@@ -266,13 +278,28 @@ function buildKpis(
 
       : 0;
 
+  const overpaidStyles =
+    rows.filter(
+      row =>
+        row.status ===
+        "OVERPAID"
+    ).length;
+
+  const underpaidStyles =
+    rows.filter(
+      row =>
+        row.status ===
+        "UNDERPAID"
+    ).length;
+
   return {
 
-    matchedStyles:
-      validation.foundCount,
+    foundStyles:
+      rows.length,
 
-    notFoundStyles:
-      validation.notFoundCount,
+    overpaidStyles,
+
+    underpaidStyles,
 
     totalUnits,
 
@@ -280,21 +307,7 @@ function buildKpis(
 
     totalPurchase,
 
-    actualMargin,
-
-    overpaid:
-      rows.filter(
-        row =>
-          row.status ===
-          "OVERPAID"
-      ).length,
-
-    underpaid:
-      rows.filter(
-        row =>
-          row.status ===
-          "UNDERPAID"
-      ).length
+    actualMargin
 
   };
 
@@ -309,15 +322,20 @@ function getStatus(
 ) {
 
   if (
-    diff > 0
+    diff > DIFF_TOLERANCE
   ) {
+
     return "OVERPAID";
+
   }
 
   if (
-    diff < 0
+    diff <
+    -DIFF_TOLERANCE
   ) {
+
     return "UNDERPAID";
+
   }
 
   return "CORRECT";
